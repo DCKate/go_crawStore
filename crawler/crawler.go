@@ -3,9 +3,11 @@ package crawler
 import (
 	"bytes"
 	"encoding/json"
+	"go_algo/sort"
 	"go_test/inerfun"
 	"log"
 	"os"
+	"strconv"
 
 	"golang.org/x/net/html"
 )
@@ -22,6 +24,14 @@ type ParseData struct {
 	Note    string `json:"note"`
 }
 
+func (th ParseData) GetCompareValue() int64 {
+	pr, err := strconv.ParseInt(th.Price, 10, 64)
+	if err != nil {
+		return 0
+	}
+	return pr
+}
+
 type OperationCmd string
 
 type CrawleCmd struct {
@@ -31,9 +41,11 @@ type CrawleCmd struct {
 
 //BaseCrawler use for crawlering different website
 type BaseCrawler interface {
-	StartCrawlering(CrawleCmd)
-	GetCrawlingData(map[string]string) []ParseData
+	GetStoreName() string
+	StartCrawlering(CrawleCmd) interface{}
+	GetCrawlingData(interface{}) []ParseData
 	GetProductDetal(ParseData) interface{}
+	MakeCrawCmd(map[string]interface{}) CrawleCmd
 }
 
 type FuncParseHtml func(*html.Tokenizer) (interface{}, interface{}) //(map[int]rturl, []rtData)
@@ -79,4 +91,12 @@ func parsePostRespJson(apiurl string, postform map[string]string) {
 		}
 		log.Printf("%v", dd)
 	}
+}
+
+func SortPriceParseData(qPs []ParseData) []sort.SortInterf {
+	var arr []sort.SortInterf
+	for _, bb := range qPs {
+		arr = append(arr, bb)
+	}
+	return arr
 }

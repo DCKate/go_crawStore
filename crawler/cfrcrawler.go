@@ -58,31 +58,51 @@ type crfProduct struct {
 
 //https://online.carrefour.com.tw/search\?key\=%E8%9D%A6\&categoryId\=1
 type CfrCrawler struct {
-	QueryProducts []crfProduct
 }
 
-func (cr *CfrCrawler) StartCrawlering(data CrawleCmd) {
+func (cr CfrCrawler) GetStoreName() string {
+	return "CARREFOUR"
+}
+
+func (cr CfrCrawler) MakeCrawCmd(para map[string]interface{}) CrawleCmd {
+	cmd := CrawleCmd{
+		Cmd:       "",
+		Parameter: make(map[string]string),
+	}
+	if vv, ok := para["cmd"]; ok {
+		switch vv {
+		case "search":
+			cmd.Cmd = CrfSearch
+			cmd.Parameter["key"] = para["key"].(string)
+		}
+	}
+	return cmd
+}
+
+func (cr CfrCrawler) StartCrawlering(data CrawleCmd) interface{} {
 	switch data.Cmd {
 	case CrfSearch:
 		domain := fmt.Sprintf("%s/%s", crfCrawlerDomain, CrfSearch)
 		rtd := parseCfrRespJson(domain, data.Parameter)
 		if len(rtd.Products) > 0 {
-			cr.makeQueryProduct(rtd.Products)
+			return cr.makeQueryProduct(rtd.Products)
 		}
 	case CrfHtml:
 		rtd, _ := ParseHtmlDoc(data.Parameter["file"], parseCfrHtml)
-		cr.makeQueryProduct(rtd.(crfSearchContent).Products)
+		return cr.makeQueryProduct(rtd.(crfSearchContent).Products)
 	}
+	return nil
 }
 
-func (cr *CfrCrawler) GetCrawlingData(cond map[string]string) []ParseData {
-	tda := make([]ParseData, len(cr.QueryProducts))
-	jdata, err := json.Marshal(cr.QueryProducts)
+func (cr CfrCrawler) GetCrawlingData(data interface{}) []ParseData {
+	qpros := data.([]crfProduct)
+	tda := make([]ParseData, len(qpros))
+	jdata, err := json.Marshal(qpros)
 	if err == nil {
 		err = json.Unmarshal(jdata, &tda)
 	}
 	if err != nil {
-		for ii, vv := range cr.QueryProducts {
+		for ii, vv := range qpros {
 			tmp := ParseData{
 				Store:   vv.Store,
 				ID:      vv.ID,
@@ -99,12 +119,12 @@ func (cr *CfrCrawler) GetCrawlingData(cond map[string]string) []ParseData {
 	return tda
 }
 
-func (cr *CfrCrawler) GetProductDetal(pro ParseData) interface{} {
+func (cr CfrCrawler) GetProductDetal(pro ParseData) interface{} {
 	return fmt.Sprintf("%s/%s", crfCrawlerDomain, pro.SeName)
 }
 
-func (crw *CfrCrawler) makeQueryProduct(pitems []crfData) int {
-	crw.QueryProducts = make([]crfProduct, len(pitems))
+func (crw CfrCrawler) makeQueryProduct(pitems []crfData) []crfProduct {
+	qpros := make([]crfProduct, len(pitems))
 	for ii, vv := range pitems {
 		tmp := crfProduct{
 			Store:       "CARREFOUR",
@@ -116,9 +136,9 @@ func (crw *CfrCrawler) makeQueryProduct(pitems []crfData) int {
 			ItemPerPack: vv.ItemQtyPerPackFormat,
 			Category:    vv.Specification,
 		}
-		crw.QueryProducts[ii] = tmp
+		qpros[ii] = tmp
 	}
-	return len(crw.QueryProducts)
+	return qpros
 }
 
 //https://online.carrefour.com.tw/search\?key\=%E8%9D%A6\&categoryId\=1
@@ -156,7 +176,7 @@ func parseCfrHtml(domDoc *html.Tokenizer) (interface{}, interface{}) {
 }
 
 func parseCfrRespJson(apiurl string, postform map[string]string) crfSearchContent {
-	var rda crfSearchContent
+	var rda crfSearchResp
 	// apiurl := "https://online.carrefour.com.tw/CarrefourECProduct/GetSearchJson"
 	// postform := map[string]string{"key": "澳洲梅花牛排", "orderBy": "0", "pageSize": "2", "pageIndex": "1", "minPrice": "0", "maxPrice": "1000"}
 	aa, bb := inerfun.MakePostForm(apiurl, nil, postform)
@@ -164,9 +184,8 @@ func parseCfrRespJson(apiurl string, postform map[string]string) crfSearchConten
 		if err := json.Unmarshal(bb, &rda); err != nil {
 			log.Println(err)
 		}
-		// log.Printf("%v", crfSearchContent)
 	}
-	return rda
+	return rda.Contents
 }
 
 // func parseCfrRespHtml(apiurl string, para map[string]string) {

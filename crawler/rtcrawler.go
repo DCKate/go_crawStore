@@ -64,31 +64,51 @@ type rtProduct struct {
 
 //RtCrawler implement Crawler's interface and cache the last query data(QueryProducts)
 type RtCrawler struct {
-	QueryProducts []rtProduct
 }
 
-func (cr *RtCrawler) StartCrawlering(data CrawleCmd) {
+func (cr RtCrawler) GetStoreName() string {
+	return "RT-MART"
+}
+
+func (cr RtCrawler) MakeCrawCmd(para map[string]interface{}) CrawleCmd {
+	cmd := CrawleCmd{
+		Cmd:       "",
+		Parameter: make(map[string]string),
+	}
+	if vv, ok := para["cmd"]; ok {
+		switch vv {
+		case "search":
+			cmd.Cmd = RtSearch
+			cmd.Parameter["prod_keyword"] = para["key"].(string)
+		}
+	}
+	return cmd
+}
+
+func (cr RtCrawler) StartCrawlering(data CrawleCmd) interface{} {
 	switch data.Cmd {
 	case RtSearch:
 		domain := fmt.Sprintf("%s?action=%s", rtCrawlerDomain, RtSearch)
 		st, urls, rtd := parseRespHtml("POST", domain, data.Parameter, ParseRtHtml)
 		if st == 0 {
-			cr.makeQueryProduct(urls.(map[int]rtUrl), rtd.([]rtData))
+			return cr.makeQueryProduct(urls.(map[int]rtUrl), rtd.([]rtData))
 		}
 	case RtHtml:
 		urls, rtd := ParseHtmlDoc(data.Parameter["file"], ParseRtHtml)
-		cr.makeQueryProduct(urls.(map[int]rtUrl), rtd.([]rtData))
+		return cr.makeQueryProduct(urls.(map[int]rtUrl), rtd.([]rtData))
 	}
+	return nil
 }
 
-func (cr *RtCrawler) GetCrawlingData() []ParseData {
-	tda := make([]ParseData, len(cr.QueryProducts))
-	jdata, err := json.Marshal(cr.QueryProducts)
+func (cr RtCrawler) GetCrawlingData(data interface{}) []ParseData {
+	qpros := data.([]rtProduct)
+	tda := make([]ParseData, len(qpros))
+	jdata, err := json.Marshal(qpros)
 	if err == nil {
 		err = json.Unmarshal(jdata, &tda)
 	}
 	if err != nil {
-		for ii, vv := range cr.QueryProducts {
+		for ii, vv := range qpros {
 			tmp := ParseData{
 				Store:   vv.Store,
 				ID:      vv.ID,
@@ -104,15 +124,15 @@ func (cr *RtCrawler) GetCrawlingData() []ParseData {
 	return tda
 }
 
-func (cr *RtCrawler) GetProductDetal(pro ParseData) interface{} {
+func (cr RtCrawler) GetProductDetal(pro ParseData) interface{} {
 	return fmt.Sprintf("%s?action=product_detail&prod_no=%s", rtCrawlerDomain, pro.SeName)
 }
 
 //https://www.rt-mart.com.tw/direct/index.php?action=product_detail&prod_no=P0000200716545
 //http://www.rt-mart.com.tw/direct/index.php?action=product_search
 
-func (crw *RtCrawler) makeQueryProduct(purls map[int]rtUrl, pitems []rtData) int {
-	crw.QueryProducts = make([]rtProduct, len(pitems))
+func (crw RtCrawler) makeQueryProduct(purls map[int]rtUrl, pitems []rtData) []rtProduct {
+	qpros := make([]rtProduct, len(pitems))
 	for ii, vv := range pitems {
 		tmp := rtProduct{
 			Store:      "RT-MART",
@@ -133,9 +153,9 @@ func (crw *RtCrawler) makeQueryProduct(purls map[int]rtUrl, pitems []rtData) int
 				// pitems[ii] = vv
 			}
 		}
-		crw.QueryProducts[ii] = tmp
+		qpros[ii] = tmp
 	}
-	return len(crw.QueryProducts)
+	return qpros
 }
 
 func tokenGetAttr(token html.Token, tkdata string, attkey string, attval string) (bool, string) {
