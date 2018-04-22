@@ -3,16 +3,12 @@ package crawler
 import (
 	"encoding/json"
 	"log"
+	"sort"
 	"sync"
+	"testing"
 )
 
-type queryData struct {
-	Code  int
-	Store string
-	Data  []ParseData
-}
-
-func TestCrawler() {
+func TestCrawler(t *testing.T) {
 	var qProducts []ParseData
 	var craws = make([]BaseCrawler, 2)
 	crf := CfrCrawler{}
@@ -20,7 +16,7 @@ func TestCrawler() {
 	craws[0] = crf
 	craws[1] = rt
 	var wg sync.WaitGroup
-	queryChan := make(chan queryData, len(craws))
+	queryChan := make(chan QueryData, len(craws))
 
 	msearch := map[string]interface{}{"cmd": "search", "key": "樂事"}
 	for _, vv := range craws {
@@ -28,7 +24,7 @@ func TestCrawler() {
 		go func(cr BaseCrawler) {
 			defer wg.Done()
 			log.Println(cr.GetStoreName())
-			qd := queryData{
+			qd := QueryData{
 				Code:  -1,
 				Store: cr.GetStoreName(),
 			}
@@ -53,7 +49,7 @@ func TestCrawler() {
 			qProducts = append(qProducts, tmp.Data...)
 		}
 	}
-
-	jj, _ := json.Marshal(SortPriceParseData(qProducts)[:20])
+	sort.Sort(ParseDataGroup(qProducts))
+	jj, _ := json.Marshal(qProducts[:20])
 	log.Println(string(jj))
 }

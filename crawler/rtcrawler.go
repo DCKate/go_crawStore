@@ -19,6 +19,7 @@ const (
 	nodeProduct = 2
 	nodeDetail  = 3
 
+	RtStoreName     = "rt-mart"
 	rtCrawlerDomain = "https://www.rt-mart.com.tw/direct/index.php"
 	//RtSearch used to call the action of search on rt-mart
 	RtSearch OperationCmd = "product_search"
@@ -66,8 +67,9 @@ type rtProduct struct {
 type RtCrawler struct {
 }
 
+//GetStoreName get the store name of this crawler used to
 func (cr RtCrawler) GetStoreName() string {
-	return "RT-MART"
+	return RtStoreName
 }
 
 func (cr RtCrawler) MakeCrawCmd(para map[string]interface{}) CrawleCmd {
@@ -124,18 +126,15 @@ func (cr RtCrawler) GetCrawlingData(data interface{}) []ParseData {
 	return tda
 }
 
-func (cr RtCrawler) GetProductDetal(pro ParseData) interface{} {
+func (cr RtCrawler) GetProductDetail(pro ParseData) interface{} {
 	return fmt.Sprintf("%s?action=product_detail&prod_no=%s", rtCrawlerDomain, pro.SeName)
 }
-
-//https://www.rt-mart.com.tw/direct/index.php?action=product_detail&prod_no=P0000200716545
-//http://www.rt-mart.com.tw/direct/index.php?action=product_search
 
 func (crw RtCrawler) makeQueryProduct(purls map[int]rtUrl, pitems []rtData) []rtProduct {
 	qpros := make([]rtProduct, len(pitems))
 	for ii, vv := range pitems {
 		tmp := rtProduct{
-			Store:      "RT-MART",
+			Store:      RtStoreName,
 			ID:         vv.ID,
 			SeName:     "",
 			PictureURL: "",

@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	CrfStoreName     = "carrefour"
 	crfCrawlerDomain = "https://online.carrefour.com.tw"
 	//RtSearch used to call the action of search on rt-mart
 	CrfSearch OperationCmd = "CarrefourECProduct/GetSearchJson"
@@ -56,12 +57,11 @@ type crfProduct struct {
 	Category    string `json:"note"`
 }
 
-//https://online.carrefour.com.tw/search\?key\=%E8%9D%A6\&categoryId\=1
 type CfrCrawler struct {
 }
 
 func (cr CfrCrawler) GetStoreName() string {
-	return "CARREFOUR"
+	return CrfStoreName
 }
 
 func (cr CfrCrawler) MakeCrawCmd(para map[string]interface{}) CrawleCmd {
@@ -76,6 +76,7 @@ func (cr CfrCrawler) MakeCrawCmd(para map[string]interface{}) CrawleCmd {
 			cmd.Parameter["key"] = para["key"].(string)
 		}
 	}
+	// log.Println(cmd)
 	return cmd
 }
 
@@ -119,7 +120,7 @@ func (cr CfrCrawler) GetCrawlingData(data interface{}) []ParseData {
 	return tda
 }
 
-func (cr CfrCrawler) GetProductDetal(pro ParseData) interface{} {
+func (cr CfrCrawler) GetProductDetail(pro ParseData) interface{} {
 	return fmt.Sprintf("%s/%s", crfCrawlerDomain, pro.SeName)
 }
 
@@ -127,7 +128,7 @@ func (crw CfrCrawler) makeQueryProduct(pitems []crfData) []crfProduct {
 	qpros := make([]crfProduct, len(pitems))
 	for ii, vv := range pitems {
 		tmp := crfProduct{
-			Store:       "CARREFOUR",
+			Store:       CrfStoreName,
 			ID:          strconv.Itoa(vv.ID),
 			SeName:      vv.SeName,
 			PictureURL:  vv.PictureURL,
@@ -140,8 +141,6 @@ func (crw CfrCrawler) makeQueryProduct(pitems []crfData) []crfProduct {
 	}
 	return qpros
 }
-
-//https://online.carrefour.com.tw/search\?key\=%E8%9D%A6\&categoryId\=1
 
 func parseCfrHtml(domDoc *html.Tokenizer) (interface{}, interface{}) {
 	var rda crfSearchContent
@@ -177,8 +176,6 @@ func parseCfrHtml(domDoc *html.Tokenizer) (interface{}, interface{}) {
 
 func parseCfrRespJson(apiurl string, postform map[string]string) crfSearchContent {
 	var rda crfSearchResp
-	// apiurl := "https://online.carrefour.com.tw/CarrefourECProduct/GetSearchJson"
-	// postform := map[string]string{"key": "澳洲梅花牛排", "orderBy": "0", "pageSize": "2", "pageIndex": "1", "minPrice": "0", "maxPrice": "1000"}
 	aa, bb := inerfun.MakePostForm(apiurl, nil, postform)
 	if aa == 200 {
 		if err := json.Unmarshal(bb, &rda); err != nil {
@@ -188,12 +185,7 @@ func parseCfrRespJson(apiurl string, postform map[string]string) crfSearchConten
 	return rda.Contents
 }
 
-// func parseCfrRespHtml(apiurl string, para map[string]string) {
-// 	// apiurl := "https://online.carrefour.com.tw/search"
-// 	// para := map[string]string{"key": "澳洲梅花牛排"}
-// 	aa, bb := inerfun.MakeGet(apiurl, nil, para)
-// 	if aa == 200 {
-// 		domDoc := html.NewTokenizer(bytes.NewReader(bb))
-// 		parseCfrHtml(domDoc)
-// 	}
-// }
+// note: how to search in carrefour
+// json url : https://online.carrefour.com.tw/CarrefourECProduct/GetSearchJson
+// general url: https://online.carrefour.com.tw/search
+// requset parameter: map[string]string{"key": "澳洲梅花牛排", "orderBy": "0", "pageSize": "2", "pageIndex": "1", "minPrice": "0", "maxPrice": "1000"}

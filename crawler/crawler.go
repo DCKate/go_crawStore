@@ -2,8 +2,6 @@ package crawler
 
 import (
 	"bytes"
-	"encoding/json"
-	"go_algo/sort"
 	"go_test/inerfun"
 	"log"
 	"os"
@@ -11,6 +9,12 @@ import (
 
 	"golang.org/x/net/html"
 )
+
+type QueryData struct {
+	Code  int
+	Store string
+	Data  []ParseData
+}
 
 //ParseData the date after crawlering
 type ParseData struct {
@@ -24,12 +28,22 @@ type ParseData struct {
 	Note    string `json:"note"`
 }
 
-func (th ParseData) GetCompareValue() int64 {
-	pr, err := strconv.ParseInt(th.Price, 10, 64)
+//ParseDataGroup : use to implement the interface used for sort.Sort
+type ParseDataGroup []ParseData
+
+func (p ParseDataGroup) Len() int {
+	return len(p)
+}
+func (p ParseDataGroup) Less(i, j int) bool {
+	pi, err := strconv.Atoi(p[i].Price)
+	pj, err := strconv.Atoi(p[j].Price)
 	if err != nil {
-		return 0
+		return false
 	}
-	return pr
+	return pi < pj
+}
+func (p ParseDataGroup) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
 }
 
 type OperationCmd string
@@ -44,13 +58,15 @@ type BaseCrawler interface {
 	GetStoreName() string
 	StartCrawlering(CrawleCmd) interface{}
 	GetCrawlingData(interface{}) []ParseData
-	GetProductDetal(ParseData) interface{}
+	GetProductDetail(ParseData) interface{}
 	MakeCrawCmd(map[string]interface{}) CrawleCmd
 }
 
-type FuncParseHtml func(*html.Tokenizer) (interface{}, interface{}) //(map[int]rturl, []rtData)
+// FuncParseHtml : this kind of function is used to parse html document
+type FuncParseHtml func(*html.Tokenizer) (interface{}, interface{})
 
-func ParseHtmlDoc(fname string, rf FuncParseHtml) (interface{}, interface{}) { //(map[int]rturl, []rtData) {
+// ParseHtmlDoc : parse the html file
+func ParseHtmlDoc(fname string, rf FuncParseHtml) (interface{}, interface{}) {
 	f, err := os.OpenFile(fname, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		log.Fatal(err)
@@ -59,6 +75,11 @@ func ParseHtmlDoc(fname string, rf FuncParseHtml) (interface{}, interface{}) { /
 	return rf(domDoc)
 }
 
+// parseRespHtml : send http request and parse the response
+// 		method: support GET, POST
+// 		apiurl: the url
+//		para: request parameter
+//		rf:  function used to parse response
 func parseRespHtml(method string, apiurl string, para map[string]string, rf FuncParseHtml) (int, interface{}, interface{}) {
 	var (
 		status int
@@ -77,26 +98,4 @@ func parseRespHtml(method string, apiurl string, para map[string]string, rf Func
 		return 0, rm, rd
 	}
 	return -1, nil, nil
-}
-
-func parsePostRespJson(apiurl string, postform map[string]string) {
-	// apiurl := "https://online.carrefour.com.tw/CarrefourECProduct/GetSearchJson"
-	// postform := map[string]string{"key": "澳洲梅花牛排", "orderBy": "0", "pageSize": "2", "pageIndex": "1", "minPrice": "0", "maxPrice": "1000"}
-	aa, bb := inerfun.MakePostForm(apiurl, nil, postform)
-	log.Printf("%v\n", string(bb))
-	if aa == 200 {
-		var dd crfSearchResp
-		if err := json.Unmarshal(bb, &dd); err != nil {
-			log.Println(err)
-		}
-		log.Printf("%v", dd)
-	}
-}
-
-func SortPriceParseData(qPs []ParseData) []sort.SortInterf {
-	var arr []sort.SortInterf
-	for _, bb := range qPs {
-		arr = append(arr, bb)
-	}
-	return arr
 }
