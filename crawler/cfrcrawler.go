@@ -20,6 +20,7 @@ const (
 	CrfHtml   OperationCmd = "parse_carrefour_html"
 )
 
+// the following stucture is json format return by carrefour
 type crfData struct {
 	ID                   int    `json:"Id"`
 	PictureURL           string `json:"PictureUrl"`
@@ -46,6 +47,7 @@ type crfSearchResp struct {
 	// Data     json.RawMessage
 }
 
+// crfProduct : the product info used in cfrcrawler, and the key of json format is consistent with crawler.ParseData
 type crfProduct struct {
 	Store       string `json:"store"`
 	ID          string `json:"id"`
@@ -142,6 +144,7 @@ func (crw CfrCrawler) makeQueryProduct(pitems []crfData) []crfProduct {
 	return qpros
 }
 
+// parseCfrHtml : use to parse the html response return by carrefour
 func parseCfrHtml(domDoc *html.Tokenizer) (interface{}, interface{}) {
 	var rda crfSearchContent
 	previousStartToken := domDoc.Token()
@@ -174,6 +177,7 @@ func parseCfrHtml(domDoc *html.Tokenizer) (interface{}, interface{}) {
 	}
 }
 
+// parseCfrRespJson : carrefour is support the api for returning json data
 func parseCfrRespJson(apiurl string, postform map[string]string) crfSearchContent {
 	var rda crfSearchResp
 	aa, bb := inerfun.MakePostForm(apiurl, nil, postform)

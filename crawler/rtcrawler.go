@@ -168,6 +168,7 @@ func tokenGetAttr(token html.Token, tkdata string, attkey string, attval string)
 	return false, ""
 }
 
+// ParseRtHtml : use to parse the html response return by rt-mart
 func ParseRtHtml(domDoc *html.Tokenizer) (interface{}, interface{}) {
 	var jsitems rtSearchResp
 	donitems := make(map[int]rtUrl)
