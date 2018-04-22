@@ -84,6 +84,9 @@ func (cr RtCrawler) MakeCrawCmd(para map[string]interface{}) CrawleCmd {
 			cmd.Parameter["prod_keyword"] = para["key"].(string)
 		}
 	}
+	if vv, ok := para["price_range"]; ok {
+		cmd.Parameter["price_range"] = strconv.Itoa(vv.(int))
+	}
 	return cmd
 }
 
