@@ -2,7 +2,6 @@ package controller
 
 import (
 	"go_findstuff/crawler"
-	"log"
 	"sort"
 	"sync"
 )
@@ -18,7 +17,7 @@ func RunSearchCrawler(craws []crawler.BaseCrawler, msearch map[string]interface{
 		wg.Add(1)
 		go func(cr crawler.BaseCrawler) {
 			defer wg.Done()
-			log.Println(cr.GetStoreName())
+			// log.Println(cr.GetStoreName())
 			qd := crawler.QueryData{
 				Code:  -1,
 				Store: cr.GetStoreName(),
@@ -68,8 +67,10 @@ func ProductsSearchController(para map[string]interface{}) (int, []crawler.Parse
 		rt := crawler.RtCrawler{}
 		craws = append(craws, crf, rt)
 	}
-	skey := para["key"].(string)
-	msearch := map[string]interface{}{"cmd": "search", "key": skey}
+	msearch := map[string]interface{}{"cmd": "search", "key": para["key"].(string)}
+	if vv, ok := para["price_range"]; ok {
+		msearch["price_range"] = vv.(int)
+	}
 	ret := RunSearchCrawler(craws, msearch)
 	disNum := len(ret)
 	if vv, ok := para["limit"]; ok {

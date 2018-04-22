@@ -33,6 +33,7 @@ func parseRequesyData(r *http.Request) map[string]interface{} {
 		}
 	case "POST":
 		err := json.NewDecoder(r.Body).Decode(&mtmp)
+		log.Printf("get post %v\n", mtmp)
 		if err != nil {
 			panic(err)
 		}
@@ -46,11 +47,20 @@ func parseRequesyData(r *http.Request) map[string]interface{} {
 				mret[kk] = vv.(string)
 			case "store":
 				mret[kk] = []interface{}{vv.(string)}
+			case "price_range":
+				fallthrough
 			case "limit":
 				lNum, err := strconv.Atoi(vv.(string))
 				if err == nil {
 					mret[kk] = lNum
 				}
+			}
+		case float64:
+			switch kk {
+			case "price_range":
+				fallthrough
+			case "limit":
+				mret[kk] = int(vv.(float64))
 			}
 		case []interface{}:
 			switch kk {
@@ -58,6 +68,8 @@ func parseRequesyData(r *http.Request) map[string]interface{} {
 				mret[kk] = vv.([]interface{})[0].(string)
 			case "store":
 				mret[kk] = vv
+			case "price_range":
+				fallthrough
 			case "limit":
 				lNum, err := strconv.Atoi(vv.([]interface{})[0].(string))
 				if err == nil {
@@ -71,7 +83,7 @@ func parseRequesyData(r *http.Request) map[string]interface{} {
 
 func ProductsSearchHandler(w http.ResponseWriter, r *http.Request) {
 	mpara := parseRequesyData(r)
-	log.Println(mpara)
+	log.Printf("%v\n", mpara)
 
 	if _, ok := mpara["key"]; ok {
 		ri, rdata := controller.ProductsSearchController(mpara)

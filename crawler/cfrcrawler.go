@@ -20,6 +20,16 @@ const (
 	CrfHtml   OperationCmd = "parse_carrefour_html"
 )
 
+var priceMap = map[int][]string{
+	1: []string{"0", "500"},
+	2: []string{"501", "1000"},
+	3: []string{"1001", "3000"},
+	4: []string{"3001", "10000"},
+	5: []string{"10001", "30000"},
+	6: []string{"30001", "0"},
+}
+
+// the following stucture is json format return by carrefour
 type crfData struct {
 	ID                   int    `json:"Id"`
 	PictureURL           string `json:"PictureUrl"`
@@ -46,6 +56,7 @@ type crfSearchResp struct {
 	// Data     json.RawMessage
 }
 
+// crfProduct : the product info used in cfrcrawler, and the key of json format is consistent with crawler.ParseData
 type crfProduct struct {
 	Store       string `json:"store"`
 	ID          string `json:"id"`
@@ -65,6 +76,7 @@ func (cr CfrCrawler) GetStoreName() string {
 }
 
 func (cr CfrCrawler) MakeCrawCmd(para map[string]interface{}) CrawleCmd {
+
 	cmd := CrawleCmd{
 		Cmd:       "",
 		Parameter: make(map[string]string),
@@ -74,6 +86,13 @@ func (cr CfrCrawler) MakeCrawCmd(para map[string]interface{}) CrawleCmd {
 		case "search":
 			cmd.Cmd = CrfSearch
 			cmd.Parameter["key"] = para["key"].(string)
+		}
+	}
+	if vv, ok := para["price_range"]; ok {
+		ranges := priceMap[vv.(int)]
+		cmd.Parameter["minPrice"] = ranges[0]
+		if ranges[1] != "0" {
+			cmd.Parameter["maxPrice"] = ranges[1]
 		}
 	}
 	// log.Println(cmd)
@@ -142,6 +161,7 @@ func (crw CfrCrawler) makeQueryProduct(pitems []crfData) []crfProduct {
 	return qpros
 }
 
+// parseCfrHtml : use to parse the html response return by carrefour
 func parseCfrHtml(domDoc *html.Tokenizer) (interface{}, interface{}) {
 	var rda crfSearchContent
 	previousStartToken := domDoc.Token()
@@ -174,6 +194,7 @@ func parseCfrHtml(domDoc *html.Tokenizer) (interface{}, interface{}) {
 	}
 }
 
+// parseCfrRespJson : carrefour is support the api for returning json data
 func parseCfrRespJson(apiurl string, postform map[string]string) crfSearchContent {
 	var rda crfSearchResp
 	aa, bb := inerfun.MakePostForm(apiurl, nil, postform)
